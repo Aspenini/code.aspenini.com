@@ -91,6 +91,28 @@ function updateScriptSelector() {
     }
 }
 
+// Download script
+function downloadScript() {
+    const code = document.getElementById('editor').value.trim();
+    if (!code) {
+        alert('No code to download.');
+        return;
+    }
+    
+    const scriptName = document.getElementById('script-selector').value || 'script';
+    const filename = scriptName.endsWith('.py') ? scriptName : scriptName + '.py';
+    
+    const blob = new Blob([code], { type: 'text/x-python' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
 // Run Python code
 async function runCode() {
     if (!pyodide) {
@@ -180,6 +202,9 @@ document.addEventListener('DOMContentLoaded', () => {
         saveScript(name, code);
         alert('Script saved!');
     });
+    
+    // Download button
+    document.getElementById('download-btn').addEventListener('click', downloadScript);
     
     // Delete button
     document.getElementById('delete-btn').addEventListener('click', () => {
