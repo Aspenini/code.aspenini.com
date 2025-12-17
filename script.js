@@ -131,11 +131,26 @@ async function runCode() {
     addTerminalOutput('', 'terminal-output');
     
     try {
-        // Capture stdout
+        // Set up stdin and stdout handling
         pyodide.runPython(`
 import sys
 from io import StringIO
+import builtins
+
+# Capture stdout
 sys.stdout = StringIO()
+
+# Store original input
+_original_input = builtins.input
+
+def _js_input(prompt=''):
+    """Custom input function that uses JavaScript prompt"""
+    from js import prompt
+    result = prompt(prompt or '')
+    return result if result is not None else ''
+
+# Override builtin input function
+builtins.input = _js_input
 `);
         
         // Run user code
@@ -150,13 +165,30 @@ sys.stdout = StringIO()
             addTerminalOutput('Code executed successfully (no output)', 'terminal-success');
         }
         
-        // Restore stdout
+        // Restore stdout and input
         pyodide.runPython(`
 import sys
+import builtins
 sys.stdout = sys.__stdout__
+builtins.input = _original_input
 `);
     } catch (error) {
         addTerminalOutput('Error: ' + error.message, 'terminal-error');
+        
+        // Try to restore even on error
+        try {
+            pyodide.runPython(`
+import sys
+import builtins
+try:
+    builtins.input = _original_input
+    sys.stdout = sys.__stdout__
+except:
+    pass
+`);
+        } catch (e) {
+            // Ignore restore errors
+        }
     }
 }
 
